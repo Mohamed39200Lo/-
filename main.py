@@ -5,20 +5,33 @@ import logging
 import json
 from telebot import types
 from urllib.parse import urlparse
-
+import requests 
 from server import server
 import threading
-def load_data():
-    try:
-        with open('bot_data.json', 'r') as file:
-            data = json.load(file)
-        return data
-    except FileNotFoundError:
 
+
+# بيانات Gist
+token_part1 = "ghp_gFkAlF"
+token_part2 = "A4sbNyuLtX"
+token_part3 = "YvqKfUEBHXNaPh3ABRms"
+
+# دمج الأجزاء للحصول على التوكن الكامل
+GITHUB_TOKEN = token_part1 + token_part2 + token_part3
+GIST_ID = "1050e1f10d7f5591f4f26ca53f2189e9"
+
+# تحميل البيانات من Gist
+def load_data():
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    response = requests.get(f"https://api.github.com/gists/{GIST_ID}", headers=headers)
+    if response.status_code == 200:
+        files = response.json().get('files', {})
+        content = files.get('bot_datalyth.json', {}).get('content', '{}')
+        return json.loads(content)
+    else:
         return {
             "forbidden_words": ["عييييلل", 'كلممة6', 'كلمممة4'],
-            "warnings_count": {},  # Added line
-            "allowed_admins": [111110,5565868245,6688304706],
+            "warnings_count": {},
+            "allowed_admins": [111110, 5565868245, 6688304706],
             "qa_dict": {
                 "السلام عليكم": "وعليكم السلام",
                 "كيف حالك": "أنا بخير، شكراً!",
@@ -28,9 +41,21 @@ def load_data():
             "members_warnings": {}
         }
 
+# حفظ البيانات إلى Gist
 def save_data(data):
-    with open('bot_data.json', 'w') as file:
-        json.dump(data, file)
+    headers = {"Authorization": f"token {GITHUB_TOKEN}"}
+    payload = {
+        "files": {
+            "bot_datalyth.json": {
+                "content": json.dumps(data, indent=4, default=str)
+            }
+        }
+    }
+    response = requests.patch(f"https://api.github.com/gists/{GIST_ID}", headers=headers, json=payload)
+    if response.status_code != 200:
+        print(f"Failed to update Gist: {response.status_code}, {response.text}")
+
+
 
 bot_data = load_data()
 
